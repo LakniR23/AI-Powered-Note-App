@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     const stopWords = ['who', 'is', 'the', 'a', 'an', 'at', 'in', 'on', 'what', 'do', 'i', 'have', 'my', 'today', 'tomorrow', 'yesterday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const keywords = queryLower
       .split(/\s+/)
-      .filter(word => !stopWords.includes(word) && word.length > 0);
+      .filter((word: string) => !stopWords.includes(word) && word.length > 0);
     console.log("Keywords:", keywords);
 
     // Search results
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
         // Check rawText
         const textLower = note.rawText.toLowerCase();
-        keywords.forEach(keyword => {
+        keywords.forEach((keyword: string) => {
           if (textLower.includes(keyword)) matchScore++;
         });
 
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
               const meetingStr = new Date(meeting).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase();
               const dayOfWeek = new Date(meeting).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
               
-              keywords.forEach(keyword => {
+              keywords.forEach((keyword: string) => {
                 if (meetingStr.includes(keyword) || dayOfWeek === keyword) {
                   matchScore += 2;
                   matches.push({
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
         if (note.actionItems && note.actionItems.length > 0) {
           note.actionItems.forEach((item: string) => {
             const itemLower = item.toLowerCase();
-            keywords.forEach(keyword => {
+            keywords.forEach((keyword: string) => {
               if (itemLower.includes(keyword)) {
                 matchScore++;
                 matches.push({
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         if (note.connections && note.connections.length > 0) {
           note.connections.forEach((conn: any) => {
             const connStr = `${conn.name} ${conn.relationship}`.toLowerCase();
-            keywords.forEach(keyword => {
+            keywords.forEach((keyword: string) => {
               if (connStr.includes(keyword)) {
                 matchScore += 2;
                 matches.push({
@@ -166,7 +166,7 @@ export async function POST(req: Request) {
         const personData = `${person.firstName} ${person.lastName} ${person.company} ${person.title}`.toLowerCase();
         
         // Count how many keywords match
-        const matchedKeywords = keywords.filter(keyword => personData.includes(keyword));
+        const matchedKeywords = keywords.filter((keyword: string) => personData.includes(keyword));
         const matchCount = matchedKeywords.length;
         const matchRatio = keywords.length > 0 ? matchCount / keywords.length : 0;
         
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
 
         // Check rawText
         const textLower = note.rawText.toLowerCase();
-        keywords.forEach(keyword => {
+        keywords.forEach((keyword: string) => {
           if (textLower.includes(keyword)) matchScore++;
         });
 
@@ -223,7 +223,7 @@ export async function POST(req: Request) {
               const meetingStr = new Date(meeting).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toLowerCase();
               const dayOfWeek = new Date(meeting).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
               
-              keywords.forEach(keyword => {
+              keywords.forEach((keyword: string) => {
                 if (meetingStr.includes(keyword) || dayOfWeek === keyword) {
                   matchScore += 2;
                   matches.push({
@@ -241,7 +241,7 @@ export async function POST(req: Request) {
         if (note.actionItems && note.actionItems.length > 0) {
           note.actionItems.forEach((item: string) => {
             const itemLower = item.toLowerCase();
-            keywords.forEach(keyword => {
+            keywords.forEach((keyword: string) => {
               if (itemLower.includes(keyword)) {
                 matchScore++;
                 matches.push({
@@ -258,7 +258,7 @@ export async function POST(req: Request) {
         if (note.connections && note.connections.length > 0) {
           note.connections.forEach((conn: any) => {
             const connStr = `${conn.name} ${conn.relationship}`.toLowerCase();
-            keywords.forEach(keyword => {
+            keywords.forEach((keyword: string) => {
               if (connStr.includes(keyword)) {
                 matchScore += 2;
                 matches.push({
