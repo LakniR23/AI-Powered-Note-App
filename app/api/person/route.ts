@@ -30,3 +30,35 @@ export async function GET() {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const personId = searchParams.get('personId');
+    
+    if (!personId) {
+      return NextResponse.json(
+        { success: false, error: "Person ID is required" },
+        { status: 400 }
+      );
+    }
+    
+    const deletedPerson = await Person.findByIdAndDelete(personId);
+    
+    if (!deletedPerson) {
+      return NextResponse.json(
+        { success: false, error: "Person not found" },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({ success: true, data: deletedPerson });
+  } catch (error: any) {
+    console.error("Error deleting person:", error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}

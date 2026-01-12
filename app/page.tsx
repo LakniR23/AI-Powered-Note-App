@@ -128,6 +128,35 @@ export default function Home() {
     }
   };
 
+  const deletePerson = async (personId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent selecting the person when clicking delete
+    
+    if (!confirm("Are you sure you want to delete this person? All their notes will remain but won't be accessible.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/person?personId=${personId}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        // If deleted person was selected, clear selection
+        if (selectedPerson?._id === personId) {
+          setSelectedPerson(null);
+          setShowAddPerson(true);
+        }
+        fetchPeople();
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+      console.error("Error deleting person:", error);
+    }
+  };
+
   const addPerson = async () => {
     if (!firstName || !lastName) {
       setMessage("First name and last name are required!");
@@ -176,10 +205,12 @@ export default function Home() {
   const addNote = async () => {
     if (!selectedPerson) {
       setNoteMessage("Please select a person first!");
+      setTimeout(() => setNoteMessage(""), 3000);
       return;
     }
     if (!rawText && !recordedAudio) {
       setNoteMessage("Note text or audio recording is required!");
+      setTimeout(() => setNoteMessage(""), 3000);
       return;
     }
 
@@ -203,12 +234,14 @@ export default function Home() {
 
         if (result.success) {
           setNoteMessage("Voice note added successfully!");
+          setTimeout(() => setNoteMessage(""), 3000);
           setRawText("");
           setRecordedAudio(null);
           setAudioChunks([]);
           fetchNotes(selectedPerson._id);
         } else {
           setNoteMessage(`Error: ${result.error}`);
+          setTimeout(() => setNoteMessage(""), 3000);
         }
       } else {
         // Regular text note
@@ -225,14 +258,17 @@ export default function Home() {
 
         if (result.success) {
           setNoteMessage("Note added successfully!");
+          setTimeout(() => setNoteMessage(""), 3000);
           setRawText("");
           fetchNotes(selectedPerson._id);
         } else {
           setNoteMessage(`Error: ${result.error}`);
+          setTimeout(() => setNoteMessage(""), 3000);
         }
       }
     } catch (error: any) {
       setNoteMessage(`Error: ${error.message}`);
+      setTimeout(() => setNoteMessage(""), 3000);
       console.error("Error adding note:", error);
     } finally {
       setIsNoteLoading(false);
@@ -264,6 +300,7 @@ export default function Home() {
       setNoteMessage("Recording...");
     } catch (error: any) {
       setNoteMessage(`Error: ${error.message}`);
+      setTimeout(() => setNoteMessage(""), 3000);
       console.error("Error starting recording:", error);
     }
   };
@@ -274,6 +311,7 @@ export default function Home() {
       setIsRecording(false);
       setMediaRecorder(null);
       setNoteMessage("Recording stopped. Click 'Add Note' to save.");
+      setTimeout(() => setNoteMessage(""), 500);
     }
   };
 
@@ -351,24 +389,37 @@ export default function Home() {
         </button>
         <div className="space-y-2">
           {people.map((person) => (
-            <button
+            <div
               key={person._id}
-              onClick={() => {
-                setSelectedPerson(person);
-                setShowAddPerson(false);
-                setShowSearch(false);
-              }}
-              className={`w-full text-left px-4 py-1 rounded transition ${
+              className={`rounded transition ${
                 selectedPerson?._id === person._id
                   ? "bg-black text-white"
                   : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
               }`}
             >
-              <div className="font-medium">{person.firstName} {person.lastName}</div>
-              {person.company && (
-                <div className="text-sm opacity-70">{person.company}</div>
-              )}
-            </button>
+              <div className="flex items-start justify-between p-3">
+                <button
+                  onClick={() => {
+                    setSelectedPerson(person);
+                    setShowAddPerson(false);
+                    setShowSearch(false);
+                  }}
+                  className="flex-1 text-left"
+                >
+                  <div className="font-medium">{person.firstName} {person.lastName}</div>
+                  {person.company && (
+                    <div className="text-sm opacity-70">{person.company}</div>
+                  )}
+                </button>
+                <button
+                  onClick={(e) => deletePerson(person._id, e)}
+                  className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition flex-shrink-0"
+                  title="Delete person"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>

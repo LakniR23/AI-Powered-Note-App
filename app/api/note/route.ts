@@ -18,20 +18,49 @@ export async function POST(req: Request) {
     if (data.rawText && data.rawText.trim().length > 0) {
       try {
         console.log("Extracting data from text note...");
+        
+        // Calculate dates for tomorrow and days of the week
+        const today = new Date('2026-01-12');
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        
+        // Calculate dates for each day of the current week
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekDates: { [key: string]: string } = {};
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(today);
+          const currentDay = today.getDay();
+          const diff = i - currentDay;
+          date.setDate(date.getDate() + diff);
+          weekDates[dayNames[i]] = date.toISOString().split('T')[0];
+        }
+        
         const extractPrompt = `
 Extract meetings, dates, action items, and connections from the text below.  
 Return ONLY a valid JSON object with these keys: meetings, actionItems, connections.  
 
+Current date reference: 2026-01-12 (Sunday)
+Date conversions to use:
+- "tomorrow" = ${tomorrowStr}
+- "Monday" = ${weekDates['Monday']}
+- "Tuesday" = ${weekDates['Tuesday']}
+- "Wednesday" = ${weekDates['Wednesday']}
+- "Thursday" = ${weekDates['Thursday']}
+- "Friday" = ${weekDates['Friday']}
+- "Saturday" = ${weekDates['Saturday']}
+- "Sunday" = ${weekDates['Sunday']}
+
 Rules:
-- For meetings: extract any mention of meeting someone with dates. If "tomorrow" is mentioned, use the date 2026-01-13.
+- For meetings: extract any mention of meeting someone with dates. Convert day names to actual dates using the conversions above.
 - For actionItems: extract any tasks or things to do mentioned.
 - For connections: extract relationships between people mentioned.
 
 Example format:  
 {
-  "meetings": [{"person": "Kasun Fernando", "date": "2026-01-13"}],
-  "actionItems": ["Meet Kasun Fernando tomorrow"],
-  "connections": [{"person": "Kasun Fernando", "relationship": "Person to meet"}]
+  "meetings": [{"person": "John Doe", "date": "${tomorrowStr}"}],
+  "actionItems": ["Meet John Doe tomorrow"],
+  "connections": [{"person": "John Doe", "relationship": "Person to meet"}]
 }
 
 Text: """${data.rawText}"""
