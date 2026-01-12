@@ -13,5 +13,20 @@
     "_id": "1768230093903b6d46hhr4",
     "createdAt": "2026-01-12T15:01:33.903Z",
     "updatedAt": "2026-01-12T15:01:33.903Z"
+  },
+  {
+    "personId": "1768230075153vdsqr5ton",
+    "rawText": "Schedule meeting on February 15th.\n",
+    "audioFile": "/uploads/1768230075153vdsqr5ton_1768230262322_recording_1768230262284.webm",
+    "actionItems": [
+      "Schedule meeting on February 15th."
+    ],
+    "meetings": [
+      "2026-02-15"
+    ],
+    "connections": [],
+    "_id": "1768230267166bzuseq6hc",
+    "createdAt": "2026-01-12T15:04:27.166Z",
+    "updatedAt": "2026-01-12T15:04:27.166Z"
   }
 ]

@@ -208,6 +208,18 @@ export default function Home() {
       setTimeout(() => setNoteMessage(""), 3000);
       return;
     }
+    
+    // Validate that the selected person has a valid MongoDB ObjectId
+    if (!selectedPerson._id || selectedPerson._id.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(selectedPerson._id)) {
+      setNoteMessage("Invalid person selected. Please refresh and select a valid person.");
+      setTimeout(() => {
+        setNoteMessage("");
+        setSelectedPerson(null);
+        fetchPeople();
+      }, 3000);
+      return;
+    }
+    
     if (!rawText && !recordedAudio) {
       setNoteMessage("Note text or audio recording is required!");
       setTimeout(() => setNoteMessage(""), 3000);

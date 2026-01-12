@@ -1,8 +1,12 @@
-import { getAllNotes, getAllPersons } from "@/lib/fileStorage";
+import { connectDB } from "@/lib/mongodb";
+import Note from "@/models/Note";
+import Person from "@/models/Person";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    await connectDB();
+    
     let query = "";
     let personId = undefined;
     
@@ -77,8 +81,7 @@ export async function POST(req: Request) {
     // If personId is provided, only search that person's notes
     if (personId) {
       // Search Note database for this person only
-      const allNotes = await getAllNotes();
-      const notes = allNotes.filter(note => note.personId === personId);
+      const notes = await Note.find({ personId });
       notes.forEach((note: any) => {
         let matches: any[] = [];
         let matchScore = 0;
@@ -172,7 +175,7 @@ export async function POST(req: Request) {
       });
     } else {
       // Global search across all people
-      const people = await getAllPersons();
+      const people = await Person.find({});
       people.forEach((person: any) => {
         const personData = `${person.firstName} ${person.lastName} ${person.company} ${person.title}`.toLowerCase();
         
@@ -200,7 +203,7 @@ export async function POST(req: Request) {
       });
 
       // Search notes for global search
-      const notes = await getAllNotes();
+      const notes = await Note.find({});
       notes.forEach((note: any) => {
         let matches: any[] = [];
         let matchScore = 0;
@@ -349,9 +352,9 @@ export async function POST(req: Request) {
     });
     
     // Fetch all persons at once
-    const allPersons = await getAllPersons();
+    const persons = await Person.find({ _id: { $in: Array.from(personIds) } });
     const personMap = new Map();
-    allPersons.forEach(p => {
+    persons.forEach(p => {
       personMap.set(p._id.toString(), p);
     });
     

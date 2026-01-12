@@ -1,9 +1,11 @@
-import { createNote, getAllNotes, getNotesByPersonId, deleteNote } from "@/lib/fileStorage";
+import { connectDB } from "@/lib/mongodb";
+import Note from "@/models/Note";
 import { NextResponse } from "next/server";
 import { callGemini } from "@/lib/geminiClient";
 
 export async function POST(req: Request) {
   try {
+    await connectDB();
     const data = await req.json();
     
     // Extract structured data from text
@@ -96,7 +98,10 @@ Return ONLY the JSON object, no other text.
     const noteData = {
       ...data,
       actionItems: extractedData.actionItems || [],
-      meetings: extractedData.meetings?.map((m: any) => m.date).filter((d: any) => d) || [],
+      meetings: extractedData.meetings?.map((m: any) => {
+        const date = new Date(m.date);
+        return isNaN(date.getTime()) ? null : date;
+      }).filter((d: any) => d !== null) || [],
       connections: extractedData.connections?.map((c: any) => ({
         name: c.person || c.name || "",
         relationship: c.knows || c.relationship || ""
@@ -104,7 +109,7 @@ Return ONLY the JSON object, no other text.
     };
 
     console.log("Creating note with data:", JSON.stringify(noteData, null, 2));
-    const note = await createNote(noteData);
+    const note = await Note.create(noteData);
     console.log("Note created successfully:", note._id);
     return NextResponse.json({ success: true, data: note });
   } catch (error: any) {
@@ -118,13 +123,13 @@ Return ONLY the JSON object, no other text.
 
 export async function GET(req: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(req.url);
     const personId = searchParams.get('personId');
     
     console.log("Fetching notes for personId:", personId);
-    const notes = personId ? await getNotesByPersonId(personId) : await getAllNotes();
-    // Sort by createdAt descending
-    notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const query = personId ? { personId } : {};
+    const notes = await Note.find(query).sort({ createdAt: -1 });
     console.log(`Found ${notes.length} notes`);
     return NextResponse.json({ success: true, data: notes });
   } catch (error: any) {
@@ -138,6 +143,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    await connectDB();
     const { searchParams } = new URL(req.url);
     const noteId = searchParams.get('noteId');
     
@@ -148,7 +154,7 @@ export async function DELETE(req: Request) {
       );
     }
     
-    const deletedNote = await deleteNote(noteId);
+    const deletedNote = await Note.findByIdAndDelete(noteId);
     
     if (!deletedNote) {
       return NextResponse.json(
