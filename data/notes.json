@@ -1,0 +1,17 @@
+[
+  {
+    "personId": "1768230075153vdsqr5ton",
+    "rawText": "Schedule meeting tomorrow.\n",
+    "audioFile": "/uploads/1768230075153vdsqr5ton_1768230090588_recording_1768230090140.webm",
+    "actionItems": [
+      "Schedule meeting tomorrow"
+    ],
+    "meetings": [
+      "2026-01-13"
+    ],
+    "connections": [],
+    "_id": "1768230093903b6d46hhr4",
+    "createdAt": "2026-01-12T15:01:33.903Z",
+    "updatedAt": "2026-01-12T15:01:33.903Z"
+  }
+]

@@ -1,6 +1,10 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-
 export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+
   // Convert audio buffer to base64
   const base64Audio = audioBuffer.toString('base64');
   

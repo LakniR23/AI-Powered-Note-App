@@ -1,0 +1,13 @@
+[
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "company": "IFS",
+    "title": "Software Engineer",
+    "email": "john@gmail.com",
+    "phone": "+9412345678",
+    "_id": "1768230075153vdsqr5ton",
+    "createdAt": "2026-01-12T15:01:15.153Z",
+    "updatedAt": "2026-01-12T15:01:15.153Z"
+  }
+]

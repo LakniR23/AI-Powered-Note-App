@@ -1,12 +1,10 @@
-import { connectDB } from "@/lib/mongodb";
-import Person from "@/models/Person";
+import { getAllPersons, createPerson, deletePerson } from "@/lib/fileStorage";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
     const data = await req.json();
-    const person = await Person.create(data);
+    const person = await createPerson(data);
     return NextResponse.json({ success: true, data: person });
   } catch (error: any) {
     console.error("Error creating person:", error);
@@ -19,8 +17,7 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    await connectDB();
-    const people = await Person.find();
+    const people = await getAllPersons();
     return NextResponse.json({ success: true, data: people });
   } catch (error: any) {
     console.error("Error fetching people:", error);
@@ -33,7 +30,6 @@ export async function GET() {
 
 export async function DELETE(req: Request) {
   try {
-    await connectDB();
     const { searchParams } = new URL(req.url);
     const personId = searchParams.get('personId');
     
@@ -44,7 +40,7 @@ export async function DELETE(req: Request) {
       );
     }
     
-    const deletedPerson = await Person.findByIdAndDelete(personId);
+    const deletedPerson = await deletePerson(personId);
     
     if (!deletedPerson) {
       return NextResponse.json(

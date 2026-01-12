@@ -1,5 +1,4 @@
-import { connectDB } from "@/lib/mongodb";
-import Note from "@/models/Note";
+import { createNote } from "@/lib/fileStorage";
 import { NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import { join } from "path";
@@ -8,8 +7,6 @@ import { callGemini } from "@/lib/geminiClient";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-    
     const formData = await req.formData();
     const personId = formData.get("personId") as string;
     const rawText = formData.get("rawText") as string;
@@ -133,15 +130,12 @@ Return ONLY the JSON object, no other text.
     }
 
     // Create note with audio file path and extracted data
-    const note = await Note.create({
+    const note = await createNote({
       personId,
       rawText: transcribedText,
       audioFile: `/uploads/${fileName}`,
       actionItems: extractedData.actionItems || [],
-      meetings: extractedData.meetings?.map((m: any) => {
-        const date = new Date(m.date);
-        return isNaN(date.getTime()) ? null : date;
-      }).filter((d: any) => d !== null) || [],
+      meetings: extractedData.meetings?.map((m: any) => m.date).filter((d: any) => d) || [],
       connections: extractedData.connections?.map((c: any) => ({
         name: c.person || c.name || "",
         relationship: c.knows || c.relationship || ""

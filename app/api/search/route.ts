@@ -1,12 +1,22 @@
-import { connectDB } from "@/lib/mongodb";
-import Note from "@/models/Note";
-import Person from "@/models/Person";
+import { getAllNotes, getAllPersons } from "@/lib/fileStorage";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-    const { query, personId } = await req.json();
+    let query = "";
+    let personId = undefined;
+    
+    try {
+      const body = await req.json();
+      query = body.query || "";
+      personId = body.personId;
+    } catch (jsonError) {
+      console.error("JSON parse error:", jsonError);
+      return NextResponse.json(
+        { success: false, error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
 
     if (!query || query.trim().length === 0) {
       return NextResponse.json(
@@ -67,7 +77,8 @@ export async function POST(req: Request) {
     // If personId is provided, only search that person's notes
     if (personId) {
       // Search Note database for this person only
-      const notes = await Note.find({ personId }).populate('personId');
+      const allNotes = await getAllNotes();
+      const notes = allNotes.filter(note => note.personId === personId);
       notes.forEach((note: any) => {
         let matches: any[] = [];
         let matchScore = 0;
@@ -161,7 +172,7 @@ export async function POST(req: Request) {
       });
     } else {
       // Global search across all people
-      const people = await Person.find({});
+      const people = await getAllPersons();
       people.forEach((person: any) => {
         const personData = `${person.firstName} ${person.lastName} ${person.company} ${person.title}`.toLowerCase();
         
@@ -189,7 +200,7 @@ export async function POST(req: Request) {
       });
 
       // Search notes for global search
-      const notes = await Note.find({}).populate('personId');
+      const notes = await getAllNotes();
       notes.forEach((note: any) => {
         let matches: any[] = [];
         let matchScore = 0;
@@ -327,24 +338,49 @@ export async function POST(req: Request) {
     });
 
     // Add note results with specific answers
+    // First, collect all unique person IDs from matches
+    const personIds = new Set<string>();
     noteResults.forEach(result => {
       result.matches.forEach((match: any) => {
+        if (match.person) {
+          personIds.add(match.person.toString());
+        }
+      });
+    });
+    
+    // Fetch all persons at once
+    const allPersons = await getAllPersons();
+    const personMap = new Map();
+    allPersons.forEach(p => {
+      personMap.set(p._id.toString(), p);
+    });
+    
+    // Now format results with person data
+    noteResults.forEach(result => {
+      result.matches.forEach((match: any) => {
+        const personData = personMap.get(match.person.toString());
+        
+        if (!personData) {
+          console.warn("Person not found for ID:", match.person);
+          return; // Skip this match if person not found
+        }
+        
         if (match.type === 'meeting') {
           formattedResults.push({
             type: 'meeting',
-            person: match.person,
-            answer: `Meet ${match.person.firstName} ${match.person.lastName} on ${new Date(match.data).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`
+            person: personData,
+            answer: `Meet ${personData.firstName} ${personData.lastName} on ${new Date(match.data).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`
           });
         } else if (match.type === 'connection') {
           formattedResults.push({
             type: 'connection',
-            person: match.person,
+            person: personData,
             answer: `${match.data.name}: ${match.data.relationship}`
           });
         } else if (match.type === 'actionItem') {
           formattedResults.push({
             type: 'actionItem',
-            person: match.person,
+            person: personData,
             answer: match.data
           });
         }
