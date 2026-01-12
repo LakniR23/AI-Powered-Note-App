@@ -1,8 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import Note from "@/models/Note";
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 import { transcribeAudio } from "@/lib/transcribeAudio";
 import { callGemini } from "@/lib/geminiClient";
 
@@ -22,23 +20,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create unique filename
-    const timestamp = Date.now();
-    const fileName = `${personId}_${timestamp}_${audioFile.name}`;
+    // Convert audio file to buffer and base64
     const bytes = await audioFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Save to public/uploads directory
-    const uploadsDir = join(process.cwd(), "public", "uploads");
-    const filePath = join(uploadsDir, fileName);
-    
-    // Ensure directory exists
-    const fs = require("fs");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    await writeFile(filePath, buffer);
+    const base64Audio = buffer.toString('base64');
+    const audioDataUrl = `data:${audioFile.type};base64,${base64Audio}`;
 
     // Transcribe audio using Gemini
     let transcribedText = rawText || "Voice note";
@@ -132,11 +118,11 @@ Return ONLY the JSON object, no other text.
       // Continue with default values if transcription fails
     }
 
-    // Create note with audio file path and extracted data
+    // Create note with audio as base64 data URL and extracted data
     const note = await Note.create({
       personId,
       rawText: transcribedText,
-      audioFile: `/uploads/${fileName}`,
+      audioFile: audioDataUrl,
       actionItems: extractedData.actionItems || [],
       meetings: extractedData.meetings?.map((m: any) => {
         const date = new Date(m.date);
