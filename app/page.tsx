@@ -58,6 +58,9 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
+  // Mobile sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   // Fetch all people on mount
   useEffect(() => {
     fetchPeople();
@@ -112,7 +115,7 @@ export default function Home() {
         method: "DELETE",
       });
       const result = await response.json();
-      
+
       if (result.success) {
         setNoteMessage("Note deleted successfully!");
         if (selectedPerson) {
@@ -130,7 +133,7 @@ export default function Home() {
 
   const deletePerson = async (personId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent selecting the person when clicking delete
-    
+
     if (!confirm("Are you sure you want to delete this person? All their notes will remain but won't be accessible.")) {
       return;
     }
@@ -140,7 +143,7 @@ export default function Home() {
         method: "DELETE",
       });
       const result = await response.json();
-      
+
       if (result.success) {
         // If deleted person was selected, clear selection
         if (selectedPerson?._id === personId) {
@@ -170,8 +173,8 @@ export default function Home() {
       const response = await fetch("/api/person", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          firstName, 
+        body: JSON.stringify({
+          firstName,
           lastName,
           company: company || undefined,
           title: title || undefined,
@@ -208,7 +211,7 @@ export default function Home() {
       setTimeout(() => setNoteMessage(""), 3000);
       return;
     }
-    
+
     // Validate that the selected person has a valid MongoDB ObjectId
     if (!selectedPerson._id || selectedPerson._id.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(selectedPerson._id)) {
       setNoteMessage("Invalid person selected. Please refresh and select a valid person.");
@@ -219,7 +222,7 @@ export default function Home() {
       }, 3000);
       return;
     }
-    
+
     if (!rawText && !recordedAudio) {
       setNoteMessage("Note text or audio recording is required!");
       setTimeout(() => setNoteMessage(""), 3000);
@@ -260,7 +263,7 @@ export default function Home() {
         const response = await fetch("/api/note", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             personId: selectedPerson._id,
             rawText,
           }),
@@ -350,7 +353,7 @@ export default function Home() {
       const response = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: searchQuery
           // Global search - no personId
         }),
@@ -371,31 +374,63 @@ export default function Home() {
       setIsSearching(false);
     }
   };
-  
+
   return (
     <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
+      {/* Mobile Hamburger Menu */}
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-3 rounded-lg shadow-lg hover:bg-gray-800 transition"
+        aria-label="Toggle menu"
+      >
+        {isSidebarOpen ? (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar - People List */}
-      <div className="w-80 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 p-4 overflow-y-auto">
+      <div className={`
+        fixed md:static inset-y-0 left-0 z-40
+        w-80 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 
+        p-4 overflow-y-auto transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
         <h2 className="text-xl font-bold mb-4">People</h2>
-        
+
         <button
           onClick={() => {
             setShowSearch(true);
             setShowAddPerson(false);
             setSelectedPerson(null);
+            setIsSidebarOpen(false);
           }}
-          className="w-full mb-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          className="w-full mb-2 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-base"
         >
           🔍 Search Network
         </button>
-        
+
         <button
           onClick={() => {
             setShowAddPerson(true);
             setShowSearch(false);
             setSelectedPerson(null);
+            setIsSidebarOpen(false);
           }}
-          className="w-full mb-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+          className="w-full mb-4 px-4 py-3 bg-black text-white rounded hover:bg-gray-800 transition text-base"
         >
           + Add Person
         </button>
@@ -403,11 +438,10 @@ export default function Home() {
           {people.map((person) => (
             <div
               key={person._id}
-              className={`rounded transition ${
-                selectedPerson?._id === person._id
-                  ? "bg-black text-white"
-                  : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              }`}
+              className={`rounded transition ${selectedPerson?._id === person._id
+                ? "bg-black text-white"
+                : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
             >
               <div className="flex items-start justify-between p-3">
                 <button
@@ -415,6 +449,7 @@ export default function Home() {
                     setSelectedPerson(person);
                     setShowAddPerson(false);
                     setShowSearch(false);
+                    setIsSidebarOpen(false);
                   }}
                   className="flex-1 text-left"
                 >
@@ -437,17 +472,17 @@ export default function Home() {
       </div>
 
       {/* Right Content Area */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-4 md:p-8 pt-20 md:pt-8">
         {showSearch ? (
           /* Global Search View */
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Search Network</h1>
-            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 mb-6">
-              <div className="flex gap-2">
+            <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Search Network</h1>
+            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  className="flex-1 border border-zinc-300 dark:border-zinc-700 p-3 rounded"
-                  placeholder="Ask anything... (e.g., 'What meetings tomorrow?' or 'Who is the CEO?')"
+                  className="flex-1 border border-zinc-300 dark:border-zinc-700 p-3 rounded text-base"
+                  placeholder="Ask anything... (e.g., 'What meetings tomorrow?')"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -459,7 +494,7 @@ export default function Home() {
                 <button
                   onClick={handleSearch}
                   disabled={isSearching || !searchQuery.trim()}
-                  className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
                 >
                   {isSearching ? "Searching..." : "Search"}
                 </button>
@@ -468,31 +503,31 @@ export default function Home() {
               {/* Search Results */}
               {searchResults.length > 0 && (
                 <div className="mt-6 space-y-3">
-                  <h2 className="text-xl font-bold">Results ({searchResults.length})</h2>
+                  <h2 className="text-lg md:text-xl font-bold">Results ({searchResults.length})</h2>
                   {searchResults.map((result, idx) => (
                     <div key={idx} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
                       {result.type === 'personName' && (
-                        <div className="text-lg font-semibold">{result.answer}</div>
+                        <div className="text-base md:text-lg font-semibold">{result.answer}</div>
                       )}
 
                       {result.type === 'meeting' && (
                         <div className="flex items-start gap-3">
                           <div className="text-2xl">📅</div>
-                          <div className="font-medium">{result.answer}</div>
+                          <div className="font-medium text-sm md:text-base">{result.answer}</div>
                         </div>
                       )}
 
                       {result.type === 'connection' && (
                         <div className="flex items-start gap-3">
                           <div className="text-2xl">🔗</div>
-                          <div className="font-medium">{result.answer}</div>
+                          <div className="font-medium text-sm md:text-base">{result.answer}</div>
                         </div>
                       )}
 
                       {result.type === 'actionItem' && (
                         <div className="flex items-start gap-3">
                           <div className="text-2xl">✅</div>
-                          <div className="font-medium">{result.answer}</div>
+                          <div className="font-medium text-sm md:text-base">{result.answer}</div>
                         </div>
                       )}
                     </div>
@@ -507,9 +542,9 @@ export default function Home() {
               )}
 
               {!searchQuery && !isSearching && (
-                <div className="text-center text-zinc-500 dark:text-zinc-400 py-12">
-                  <p className="text-lg mb-4">Search your entire network for:</p>
-                  <ul className="text-left inline-block space-y-2">
+                <div className="text-center text-zinc-500 dark:text-zinc-400 py-8 md:py-12">
+                  <p className="text-base md:text-lg mb-4">Search your entire network for:</p>
+                  <ul className="text-left inline-block space-y-2 text-sm md:text-base">
                     <li>• People by name, company, or title</li>
                     <li>• Meetings (by day: tomorrow, Friday, etc.)</li>
                     <li>• Action items and tasks</li>
@@ -522,60 +557,59 @@ export default function Home() {
         ) : showAddPerson ? (
           /* Add Person Form */
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Add New Person</h1>
-            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 space-y-4">
+            <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Add New Person</h1>
+            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-4 md:p-6 space-y-4">
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="First Name *"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
               />
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="Last Name *"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
               />
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="Company"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
               />
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="Job Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="Email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <input
-                className="border border-zinc-300 dark:border-zinc-700 p-2 w-full rounded"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded text-base"
                 placeholder="Phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-              
+
               {message && (
-                <div className={`p-3 rounded text-center ${
-                  message.includes("success") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}>
+                <div className={`p-3 rounded text-center text-sm md:text-base ${message.includes("success") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  }`}>
                   {message}
                 </div>
               )}
-              
+
               <div className="flex justify-center">
                 <button
                   onClick={addPerson}
                   disabled={isLoading}
-                  className="bg-blue-600 border border-gray-700 cursor-pointer text-white px-16 py-2 rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-600 border border-gray-700 cursor-pointer text-white px-12 md:px-16 py-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
                 >
                   {isLoading ? "Adding..." : "Add Person"}
                 </button>
@@ -585,53 +619,53 @@ export default function Home() {
         ) : selectedPerson ? (
           /* Notes View */
           <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold">
+            <div className="mb-4 md:mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold">
                 {selectedPerson.firstName} {selectedPerson.lastName}
               </h1>
               {selectedPerson.title && selectedPerson.company && (
-                <p className="text-zinc-600 dark:text-zinc-400">
+                <p className="text-zinc-600 dark:text-zinc-400 text-sm md:text-base">
                   {selectedPerson.title} at {selectedPerson.company}
                 </p>
               )}
             </div>
 
             {/* Add Note Form */}
-            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4">Add Note</h2>
-              
+            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
+              <h2 className="text-lg md:text-xl font-bold mb-4">Add Note</h2>
+
               {/* Voice Recording Section */}
               <div className="mb-4">
-                <div className="flex gap-2 mb-3">
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
                   {!isRecording && !recordedAudio && (
                     <button
                       onClick={startRecording}
-                      className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                      className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-3 rounded hover:bg-red-700 transition text-base"
                     >
                       🎤 Start Recording
                     </button>
                   )}
-                  
+
                   {isRecording && (
                     <button
                       onClick={stopRecording}
-                      className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 transition animate-pulse"
+                      className="flex items-center justify-center gap-2 bg-gray-800 text-white px-4 py-3 rounded hover:bg-gray-900 transition animate-pulse text-base"
                     >
                       ⏹️ Stop Recording
                     </button>
                   )}
-                  
+
                   {recordedAudio && !isRecording && (
                     <>
                       <button
                         onClick={cancelRecording}
-                        className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition"
+                        className="flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-3 rounded hover:bg-gray-700 transition text-base"
                       >
                         🗑️ Delete Recording
                       </button>
                       <div className="flex-1">
-                        <audio 
-                          controls 
+                        <audio
+                          controls
                           src={URL.createObjectURL(recordedAudio)}
                           className="w-full"
                         />
@@ -643,26 +677,25 @@ export default function Home() {
 
               {/* Text Input Section */}
               <textarea
-                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded min-h-32"
+                className="border border-zinc-300 dark:border-zinc-700 p-3 w-full rounded min-h-32 text-base"
                 placeholder="Enter your note here... (optional if you have audio)"
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
               />
-              
+
               {noteMessage && (
-                <div className={`p-3 rounded text-center mt-4 max-w-md mx-auto ${
-                  noteMessage.includes("success") ? "bg-green-100 text-green-700" : 
+                <div className={`p-3 rounded text-center mt-4 max-w-md mx-auto text-sm md:text-base ${noteMessage.includes("success") ? "bg-green-100 text-green-700" :
                   noteMessage.includes("Recording") ? "bg-blue-100 text-blue-700" :
-                  "bg-red-100 text-red-700"
-                }`}>
+                    "bg-red-100 text-red-700"
+                  }`}>
                   {noteMessage}
                 </div>
               )}
-              
+
               <button
                 onClick={addNote}
                 disabled={isNoteLoading || isRecording}
-                className="mt-4 bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 bg-black text-white px-8 py-3 rounded hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
               >
                 {isNoteLoading ? "Adding..." : "Add Note"}
               </button>
@@ -670,7 +703,7 @@ export default function Home() {
 
             {/* Notes List */}
             <div>
-              <h2 className="text-2xl font-bold mb-4">Notes ({notes.length})</h2>
+              <h2 className="text-xl md:text-2xl font-bold mb-4">Notes ({notes.length})</h2>
               {notes.length === 0 ? (
                 <div className="text-center text-zinc-500 dark:text-zinc-400 py-12">
                   No notes yet. Add your first note above.
@@ -678,10 +711,10 @@ export default function Home() {
               ) : (
                 <div className="space-y-4">
                   {notes.map((note) => (
-                    <div key={note._id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 relative">
+                    <div key={note._id} className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 md:p-6 relative">
                       <button
                         onClick={() => deleteNote(note._id)}
-                        className="absolute top-4 right-4 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
+                        className="absolute top-4 right-4 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition text-xl"
                         title="Delete note"
                       >
                         🗑️
@@ -693,18 +726,18 @@ export default function Home() {
                               🎤 Voice Recording
                             </span>
                           </div>
-                          <audio 
-                            controls 
+                          <audio
+                            controls
                             src={note.audioFile}
                             className="w-full"
                             preload="metadata"
                           />
                         </div>
                       )}
-                      <p className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap mb-4">
+                      <p className="text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap mb-4 text-sm md:text-base pr-8">
                         {note.rawText}
                       </p>
-                      
+
                       {/* Action Items */}
                       {note.actionItems && note.actionItems.length > 0 && (
                         <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
@@ -753,7 +786,7 @@ export default function Home() {
                         </div>
                       )}
 
-                      <div className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                      <div className="mt-4 text-xs md:text-sm text-zinc-500 dark:text-zinc-400">
                         {new Date(note.createdAt).toLocaleDateString()} at{" "}
                         {new Date(note.createdAt).toLocaleTimeString()}
                       </div>
@@ -764,11 +797,12 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400">
-            <p>Select a person from the left sidebar or add a new person</p>
+          <div className="flex items-center justify-center h-full text-zinc-500 dark:text-zinc-400 text-center px-4">
+            <p className="text-sm md:text-base">Select a person from the left sidebar or add a new person</p>
           </div>
         )}
       </div>
     </div>
   );
 }
+
