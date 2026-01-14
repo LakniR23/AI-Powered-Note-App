@@ -10,6 +10,21 @@ export interface INote extends Document {
     name: string;
     relationship: string;
   }>;
+  // New: Structured network mentions for relationship tracking
+  networkMentions?: Array<{
+    personName?: string;        // e.g., "John Doe" or "CEO" (if name unknown)
+    company?: string;            // e.g., "Tesla", "Company X"
+    title?: string;              // e.g., "CEO", "CTO", "Founder"
+    context?: string;            // e.g., "knows", "works with", "friend of"
+    snippet?: string;            // Original text snippet for context
+  }>;
+  // New: Raw extracted entities for advanced search
+  extractedEntities?: {
+    people?: string[];           // All person names mentioned
+    companies?: string[];        // All companies mentioned
+    titles?: string[];           // All job titles/roles mentioned
+    keywords?: string[];         // Other relevant keywords
+  };
 }
 
 const NoteSchema: Schema<INote> = new Schema(
@@ -25,8 +40,23 @@ const NoteSchema: Schema<INote> = new Schema(
         relationship: String,
       },
     ],
+    networkMentions: [
+      {
+        personName: String,
+        company: String,
+        title: String,
+        context: String,
+        snippet: String,
+      },
+    ],
+    extractedEntities: {
+      people: [String],
+      companies: [String],
+      titles: [String],
+      keywords: [String],
+    },
   },
-  { 
+  {
     timestamps: true,
     collection: 'note'
   }

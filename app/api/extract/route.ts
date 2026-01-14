@@ -5,16 +5,34 @@ export async function POST(req: Request) {
   const { rawText } = await req.json();
 
   const prompt = `
-Extract meetings, dates, action items, and connections from the text below.  
-Return ONLY a JSON object with these keys: meetings, actionItems, connections.  
+Extract meetings, dates, action items, connections, and network relationships from the text below.  
+Return ONLY a valid JSON object with these keys: meetings, actionItems, connections, networkMentions, extractedEntities.  
+
 Example format:  
 {
   "meetings": [{"person": "Talha", "date": "2026-01-15"}],
   "actionItems": ["Meet Talha again on Friday"],
-  "connections": [{"person": "Talha", "knows": "CEO of Company XX"}]
+  "connections": [{"person": "Talha", "relationship": "knows CEO of Company XX"}],
+  "networkMentions": [
+    {
+      "personName": "CEO",
+      "company": "Company XX",
+      "title": "CEO",
+      "context": "knows",
+      "snippet": "Talha knows the CEO of Company XX"
+    }
+  ],
+  "extractedEntities": {
+    "people": ["Talha"],
+    "companies": ["Company XX"],
+    "titles": ["CEO"],
+    "keywords": ["networking"]
+  }
 }
 
 Text: """${rawText}"""
+
+Return ONLY the JSON object, no other text.
 `;
 
   const messages = [{ role: "user", content: prompt }];

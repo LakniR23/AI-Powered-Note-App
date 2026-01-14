@@ -7,7 +7,7 @@ import { callGemini } from "@/lib/geminiClient";
 export async function POST(req: Request) {
   try {
     await connectDB();
-    
+
     const formData = await req.formData();
     const personId = formData.get("personId") as string;
     const rawText = formData.get("rawText") as string;
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       meetings: [],
       connections: []
     };
-    
+
     try {
       console.log("Transcribing audio...");
       transcribedText = await transcribeAudio(buffer);
@@ -41,13 +41,13 @@ export async function POST(req: Request) {
 
       // Extract structured data from transcription
       console.log("Extracting data from transcription...");
-      
+
       // Calculate dates for tomorrow and days of the week
       const today = new Date('2026-01-12');
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split('T')[0];
-      
+
       // Calculate dates for each day of the current week
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const weekDates: { [key: string]: string } = {};
@@ -58,10 +58,11 @@ export async function POST(req: Request) {
         date.setDate(date.getDate() + diff);
         weekDates[dayNames[i]] = date.toISOString().split('T')[0];
       }
-      
+
       const extractPrompt = `
-Extract meetings, dates, action items, and connections from the text below.  
-Return ONLY a valid JSON object with these keys: meetings, actionItems, connections.  
+Text: """${transcribedText}"""
+
+Extract meetings, dates, action items, connections, and network relationships strictly from the provided text.
 
 Current date reference: 2026-01-12 (Sunday)
 Date conversions to use:
@@ -75,18 +76,42 @@ Date conversions to use:
 - "Sunday" = ${weekDates['Sunday']}
 
 Rules:
-- For meetings: extract any mention of meeting someone with dates. Convert day names to actual dates using the conversions above.
-- For actionItems: extract any tasks or things to do mentioned.
-- For connections: extract relationships between people mentioned.
+1. ONLY extract information that is explicitly stated in the text. Do not Hallucinate or guess.
+2. If no meetings, action items, or mentions are found, return empty arrays.
+3. For networkMentions: extract detailed information about people, companies, and roles mentioned:
+   - personName: The name of the person mentioned (or their role like "CEO" if name not given)
+   - company: Any company name mentioned in relation to this person
+   - title: Job title or role (CEO, CTO, Founder, Manager, etc.)
+   - context: Relationship context (knows, works with, met, friend of, etc.)
+   - snippet: The exact sentence or phrase from the text
+4. For extractedEntities: List all unique entities found:
+   - people: All person names mentioned
+   - companies: All company names mentioned
+   - titles: All job titles/roles mentioned
+   - keywords: Other important keywords or topics
 
-Example format:  
+Return ONLY JSON. No markdown formatting.
+JSON Structure:
 {
-  "meetings": [{"person": "John Doe", "date": "${tomorrowStr}"}],
-  "actionItems": ["Meet John Doe tomorrow"],
-  "connections": [{"person": "John Doe", "relationship": "Person to meet"}]
+  "meetings": [{"person": "Name", "date": "YYYY-MM-DD"}],
+  "actionItems": ["Task description"],
+  "connections": [{"name": "Name", "relationship": "Relationship description"}],
+  "networkMentions": [
+    {
+      "personName": "Name",
+      "company": "Company",
+      "title": "Title",
+      "context": "Context",
+      "snippet": "Original text snippet"
+    }
+  ],
+  "extractedEntities": {
+    "people": [],
+    "companies": [],
+    "titles": [],
+    "keywords": []
+  }
 }
-
-Text: """${transcribedText}"""
 
 Return ONLY the JSON object, no other text.
 `;
@@ -94,12 +119,12 @@ Return ONLY the JSON object, no other text.
       const extractMessages = [{ role: "user", content: extractPrompt }];
       const extractedContent = await callGemini(extractMessages);
       console.log("Raw extracted content:", extractedContent);
-      
+
       // Parse JSON from content - try to find and parse the JSON
       try {
         const jsonStart = extractedContent.indexOf("{");
         const jsonEnd = extractedContent.lastIndexOf("}") + 1;
-        
+
         if (jsonStart >= 0 && jsonEnd > jsonStart) {
           const jsonString = extractedContent.substring(jsonStart, jsonEnd);
           console.log("JSON string to parse:", jsonString);
@@ -132,6 +157,21 @@ Return ONLY the JSON object, no other text.
         name: c.person || c.name || "",
         relationship: c.knows || c.relationship || ""
       })).filter((c: any) => c.name) || [],
+      // Add network mentions
+      networkMentions: extractedData.networkMentions?.map((nm: any) => ({
+        personName: nm.personName || "",
+        company: nm.company || "",
+        title: nm.title || "",
+        context: nm.context || "",
+        snippet: nm.snippet || ""
+      })).filter((nm: any) => nm.personName || nm.company || nm.title) || [],
+      // Add extracted entities
+      extractedEntities: {
+        people: extractedData.extractedEntities?.people || [],
+        companies: extractedData.extractedEntities?.companies || [],
+        titles: extractedData.extractedEntities?.titles || [],
+        keywords: extractedData.extractedEntities?.keywords || []
+      }
     });
 
     return NextResponse.json({ success: true, data: note });
